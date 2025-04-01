@@ -8,7 +8,7 @@ from app.models.user import User
 from app.models.notes import Note
 from app.services.auth import get_current_user
 from app.services.file_processor import process_file
-from app.services.rag_service import add_to_vector_store
+from app.services.rag_service import process_user_note
 from app.schemas.note import NoteResponse
 
 router = APIRouter()
@@ -48,7 +48,7 @@ async def upload_note(
         db.refresh(note)
         
         # Add to vector store for RAG
-        add_to_vector_store(note.id, note_text)
+        process_user_note(current_user.id,note.id, note_text,file.filename)
         
         return note
     

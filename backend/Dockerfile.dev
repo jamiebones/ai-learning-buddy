@@ -1,0 +1,38 @@
+# Use a PyTorch pre-built image that already includes PyTorch and related dependencies
+FROM pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime
+
+WORKDIR /backend
+
+# Install only the additional system dependencies needed
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    python3-dev \
+    libffi-dev \
+    libssl-dev \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy and install requirements, except PyTorch which is already included
+COPY requirements.txt .
+
+# Create a lightweight version of requirements.txt excluding PyTorch-related packages
+RUN grep -v "torch\|sentence-transformers" requirements.txt > requirements-light.txt || true
+
+# Install the remaining requirements
+RUN pip install --upgrade pip && \
+    pip install -v --timeout 300 --retries 5 -r requirements-light.txt && \
+    pip install sentence-transformers --no-deps && \
+    pip install -v debugpy pytest pytest-cov black isort mypy && \
+    pip install email-validator python-multipart
+
+# Don't copy code - we'll mount it as a volume
+# This enables hot-reloading
+
+EXPOSE 8000
+EXPOSE 5678
+
+# Set PYTHONPATH to include the backend directory itself
+ENV PYTHONPATH=/backend
+
+# Use python -m to run the module properly
+CMD ["python", "-m", "app.main"] 

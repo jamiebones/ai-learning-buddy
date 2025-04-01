@@ -1,31 +1,48 @@
-# Web Framework
-fastapi>=0.95.0
-uvicorn>=0.21.1
-pydantic>=1.10.7
+# Core frameworks
+fastapi>=0.104.1
+uvicorn>=0.23.2
+starlette>=0.27.0
+httpx>=0.25.1
 
 # Database
-sqlalchemy>=2.0.9
-psycopg2-binary>=2.9.6
-alembic>=1.10.3
+sqlalchemy>=2.0.0
+asyncpg>=0.27.0
 
 # Authentication
 python-jose>=3.3.0
 passlib>=1.7.4
-bcrypt>=4.0.1
-python-multipart>=0.0.6
 
-# File Processing
+# Pydantic
+pydantic>=2.4.2
+pydantic-settings>=2.0.3
+
+# LangChain ecosystem
+langchain>=0.0.267
+langchain-community>=0.0.10
+langchain-huggingface>=0.0.8
+langchain-openai>=0.0.2
+huggingface-hub>=0.16.4
+
+# Document processing
 PyPDF2>=3.0.0
 python-docx>=0.8.11
 
-# RAG Implementation
-langchain>=0.0.200
+# Vector stores and embeddings
+faiss-cpu>=1.7.4
 sentence-transformers>=2.2.2
 chromadb>=0.4.6
-openai>=0.27.8
 
 # Utilities
 python-dotenv>=1.0.0
-requests>=2.28.2
-tenacity>=8.2.2
-pytest>=7.3.1 
+websockets>=11.0.3
+jsonschema>=4.19.1
+requests>=2.28.0
+
+# Time handling
+datetime
+
+# Form data
+python-multipart>=0.0.5
+
+# Email validator
+email-validator>=2.0.0

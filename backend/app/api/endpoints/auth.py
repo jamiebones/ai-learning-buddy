@@ -1,13 +1,18 @@
+# Standard library imports
+from datetime import timedelta
+
+# Third-party imports
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from sqlalchemy.orm import Session
+
+# Application imports
 from app.core import security
+from app.core.config import settings
 from app.core.db import get_db
 from app.models.user import User
-from app.schemas.user import UserCreate, UserResponse
 from app.schemas.token import Token
-from datetime import timedelta
-from app.core.config import settings
+from app.schemas.user import UserCreate, UserResponse
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
@@ -37,6 +42,7 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=Token)
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    # Note: The username field from OAuth form is used for email in our application
     user = db.query(User).filter(User.email == form_data.username).first()
     if not user or not security.verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
@@ -51,3 +57,4 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
     )
     
     return {"access_token": access_token, "token_type": "bearer"} 
+

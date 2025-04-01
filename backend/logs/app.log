@@ -1,0 +1,78 @@
+2025-03-31 11:39:29,645 - __main__ - INFO - Starting development server
+2025-03-31 11:39:30,738 - app.main - INFO - Starting up application
+2025-03-31 11:39:30,744 - app.main - INFO - Database tables created successfully
+2025-03-31 11:39:30,858 - watchfiles.main - INFO - 1 change detected
+2025-04-01 08:15:12,212 - __main__ - INFO - Starting development server
+2025-04-01 08:15:13,202 - app.main - INFO - Starting up application
+2025-04-01 08:15:13,202 - app.main - INFO - Starting up application
+2025-04-01 08:15:13,254 - app.main - INFO - Database tables created successfully
+2025-04-01 08:15:13,254 - app.main - INFO - Database tables created successfully
+2025-04-01 08:15:13,435 - watchfiles.main - INFO - 1 change detected
+2025-04-01 14:41:52,248 - __main__ - INFO - Starting development server
+2025-04-01 14:41:55,399 - app.main - INFO - Starting up application
+2025-04-01 14:41:55,399 - app.main - INFO - Starting up application
+2025-04-01 14:41:55,572 - watchfiles.main - INFO - 1 change detected
+2025-04-01 14:41:55,585 - sqlalchemy.engine.Engine - INFO - select pg_catalog.version()
+2025-04-01 14:41:55,585 - sqlalchemy.engine.Engine - INFO - [raw sql] ()
+2025-04-01 14:41:55,593 - sqlalchemy.engine.Engine - INFO - select current_schema()
+2025-04-01 14:41:55,593 - sqlalchemy.engine.Engine - INFO - [raw sql] ()
+2025-04-01 14:41:55,597 - sqlalchemy.engine.Engine - INFO - show standard_conforming_strings
+2025-04-01 14:41:55,597 - sqlalchemy.engine.Engine - INFO - [raw sql] ()
+2025-04-01 14:41:55,600 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-04-01 14:41:55,605 - sqlalchemy.engine.Engine - INFO - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = $1::VARCHAR AND pg_catalog.pg_class.relkind = ANY (ARRAY[$2::VARCHAR, $3::VARCHAR, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != $7::VARCHAR
+2025-04-01 14:41:55,605 - sqlalchemy.engine.Engine - INFO - [generated in 0.00040s] ('users', 'r', 'p', 'f', 'v', 'm', 'pg_catalog')
+2025-04-01 14:41:55,623 - sqlalchemy.engine.Engine - INFO - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = $1::VARCHAR AND pg_catalog.pg_class.relkind = ANY (ARRAY[$2::VARCHAR, $3::VARCHAR, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != $7::VARCHAR
+2025-04-01 14:41:55,624 - sqlalchemy.engine.Engine - INFO - [cached since 0.01919s ago] ('chats', 'r', 'p', 'f', 'v', 'm', 'pg_catalog')
+2025-04-01 14:41:55,625 - sqlalchemy.engine.Engine - INFO - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = $1::VARCHAR AND pg_catalog.pg_class.relkind = ANY (ARRAY[$2::VARCHAR, $3::VARCHAR, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != $7::VARCHAR
+2025-04-01 14:41:55,625 - sqlalchemy.engine.Engine - INFO - [cached since 0.02049s ago] ('notes', 'r', 'p', 'f', 'v', 'm', 'pg_catalog')
+2025-04-01 14:41:55,626 - sqlalchemy.engine.Engine - INFO - 
+CREATE TABLE users (
+	id UUID NOT NULL, 
+	username VARCHAR NOT NULL, 
+	email VARCHAR NOT NULL, 
+	hashed_password VARCHAR NOT NULL, 
+	created_at TIMESTAMP WITHOUT TIME ZONE, 
+	PRIMARY KEY (id)
+)
+
+
+2025-04-01 14:41:55,627 - sqlalchemy.engine.Engine - INFO - [no key 0.00029s] ()
+2025-04-01 14:41:55,689 - sqlalchemy.engine.Engine - INFO - CREATE UNIQUE INDEX ix_users_email ON users (email)
+2025-04-01 14:41:55,689 - sqlalchemy.engine.Engine - INFO - [no key 0.00036s] ()
+2025-04-01 14:41:55,696 - sqlalchemy.engine.Engine - INFO - CREATE UNIQUE INDEX ix_users_username ON users (username)
+2025-04-01 14:41:55,696 - sqlalchemy.engine.Engine - INFO - [no key 0.00030s] ()
+2025-04-01 14:41:55,702 - sqlalchemy.engine.Engine - INFO - 
+CREATE TABLE chats (
+	id UUID NOT NULL, 
+	user_id UUID NOT NULL, 
+	message TEXT NOT NULL, 
+	response TEXT NOT NULL, 
+	timestamp TIMESTAMP WITHOUT TIME ZONE, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(user_id) REFERENCES users (id) ON DELETE CASCADE
+)
+
+
+2025-04-01 14:41:55,702 - sqlalchemy.engine.Engine - INFO - [no key 0.00031s] ()
+2025-04-01 14:41:55,722 - sqlalchemy.engine.Engine - INFO - 
+CREATE TABLE notes (
+	id UUID NOT NULL, 
+	user_id UUID NOT NULL, 
+	note_text TEXT NOT NULL, 
+	file_name VARCHAR NOT NULL, 
+	upload_date TIMESTAMP WITHOUT TIME ZONE, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(user_id) REFERENCES users (id) ON DELETE CASCADE
+)
+
+
+2025-04-01 14:41:55,723 - sqlalchemy.engine.Engine - INFO - [no key 0.00032s] ()
+2025-04-01 14:41:55,733 - sqlalchemy.engine.Engine - INFO - COMMIT
+2025-04-01 14:41:55,738 - app.main - INFO - Database tables created successfully
+2025-04-01 14:41:55,738 - app.main - INFO - Database tables created successfully
