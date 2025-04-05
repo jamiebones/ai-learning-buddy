@@ -101,12 +101,12 @@ class RAGService:
 Use ONLY the provided context to answer questions. If you cannot find relevant information in the context, say so.
 
 IMPORTANT INSTRUCTIONS:
-1. NEVER mention 'chunks', 'CHUNK X', or any metadata related to document retrieval in your answer
-2. DO NOT show your thinking or reasoning process
-3. DO NOT use phrases like "Based on the context" or "According to the chunks"
-4. DO NOT output any text that starts with <think> or similar tags
-5. Provide a direct, clear answer without referencing how you arrived at it
-6. DO NOT include any preamble like "I'll analyze this..." or "Let me check..."
+1. When you want to show your reasoning process, wrap it in <think>...</think> tags
+2. You may include your step-by-step analysis in the <think> tags to show how you arrived at your answer
+3. For complex questions, break down your thinking process inside <think> tags
+4. After your thinking section, provide a clear and direct answer without the tags
+5. Your response can have both a <think> section AND a regular answer
+6. NEVER mention 'chunks', 'CHUNK X', or any metadata related to document retrieval in your main answer (outside of think tags)
 7. If you're unsure, simply state that the information isn't available in the provided context"""
             
             messages = [
@@ -168,6 +168,21 @@ async def query_notes(user_id: uuid.UUID, query: str, db: Session = None) -> Dic
         
     rag_service = RAGService(db)
     return await rag_service.query_documents(query, user_id)
+
+async def delete_note_embeddings(note_id: uuid.UUID, db: Session = None) -> bool:
+    """Delete a note's embeddings from the vector store."""
+    try:
+        # Create vector store directly if no db session
+        vector_store = VectorStore()
+        
+        # Remove from vector store
+        await vector_store.delete_documents(note_id)
+        
+        logger.info(f"Successfully deleted embeddings for note {note_id}")
+        return True
+    except Exception as e:
+        logger.error(f"Error deleting note embeddings for {note_id}: {str(e)}")
+        return False
 
 
 

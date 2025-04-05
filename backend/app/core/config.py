@@ -38,6 +38,10 @@ class Settings(BaseSettings):
     SECRET_KEY: str = os.getenv("SECRET_KEY", secrets.token_urlsafe(32))
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
+    # Refresh token settings
+    REFRESH_TOKEN_SECRET: str = os.getenv("REFRESH_TOKEN_SECRET", secrets.token_urlsafe(32))
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    
     # Security settings
     ENFORCE_HTTPS: bool = os.getenv("ENFORCE_HTTPS", "false").lower() == "true"
     ALLOWED_HOSTS: Union[str, List[str]] = "*"

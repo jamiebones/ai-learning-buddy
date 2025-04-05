@@ -6,10 +6,12 @@ from typing import List
 from app.core.db import get_db
 from app.models.user import User
 from app.models.note import Note
+from app.models.document_chunks import DocumentChunk
 from app.services.auth import get_current_user
 from app.services.file_processor import process_file
-from app.services.rag_service import process_user_note
+from app.services.rag_service import process_user_note, delete_note_embeddings
 from app.schemas.note import NoteResponse
+from sqlalchemy import select
 
 router = APIRouter()
 
@@ -55,4 +57,57 @@ async def upload_note(
     finally:
         # Clean up temporary file
         if os.path.exists(file_path):
-            os.remove(file_path) 
+            os.remove(file_path)
+
+@router.get("", response_model=List[NoteResponse])
+async def get_user_notes(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    try:
+        stmt = select(Note).where(Note.user_id == current_user.id).order_by(Note.upload_date.desc())
+        result = await db.execute(stmt)
+        notes = result.scalars().all()
+        return notes
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error retrieving notes: {str(e)}"
+        )
+
+@router.delete("/{note_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_note(
+    note_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    try:
+        # Verify note exists and belongs to user
+        stmt = select(Note).where(
+            (Note.id == note_id) &
+            (Note.user_id == current_user.id)
+        )
+        result = await db.execute(stmt)
+        note = result.scalars().first()
+        
+        if not note:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Note not found"
+            )
+        
+        # Delete embeddings from the vector database
+        await delete_note_embeddings(note_id)
+        
+        # Delete note from database (this will cascade delete chunks due to relationship setting)
+        await db.delete(note)
+        await db.commit()
+        
+        return None
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error deleting note: {str(e)}"
+        ) 
