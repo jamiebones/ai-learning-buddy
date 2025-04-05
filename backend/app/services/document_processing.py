@@ -92,4 +92,40 @@ class DocumentProcessor:
                     line_docs.append(doc)
 
         logger.info(f"Created {len(line_docs)} line-based chunks")
-        return line_docs 
+        return line_docs
+
+class TextDocumentProcessor:
+    """Handles text content chunking from database content"""
+
+    def __init__(self):
+        self.text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=1000,
+            chunk_overlap=200,
+            length_function=len,
+            separators=["\n\n", "\n", ". ", " ", ""]
+        )
+
+    def process(self, content: str) -> List[Document]:
+        """Process text content and return chunks"""
+        try:
+            # Split text into chunks
+            chunks = self.text_splitter.split_text(content)
+            
+            # Create Document objects
+            documents = [
+                Document(
+                    page_content=chunk,
+                    metadata={
+                        "chunk_type": "text",
+                        "source": "database"
+                    }
+                )
+                for chunk in chunks
+            ]
+            
+            logger.info(f"Created {len(documents)} chunks from text content")
+            return documents
+            
+        except Exception as e:
+            logger.exception(f"Error processing text content: {str(e)}")
+            return [] 

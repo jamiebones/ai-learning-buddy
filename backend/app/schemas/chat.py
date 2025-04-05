@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
+import uuid
 
 class SourceDocument(BaseModel):
     """Schema for source documents returned by the RAG system"""
@@ -13,7 +14,7 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     """Schema for chat response including the original message and system response"""
-    id: int
+    id: uuid.UUID
     message: str
     response: str
     timestamp: datetime

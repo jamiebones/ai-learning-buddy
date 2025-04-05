@@ -1,7 +1,7 @@
 from pydantic_settings import BaseSettings
 import os
 import secrets
-from typing import List, Union
+from typing import List, Union, Optional
 
 print(os.getcwd())
 
@@ -48,19 +48,19 @@ class Settings(BaseSettings):
     RATE_LIMIT_TIMEFRAME: int = int(os.getenv("RATE_LIMIT_TIMEFRAME", "60"))
 
     # Lilypad API settings
-    LILYPAD_API_URL: str = os.getenv("LILYPAD_API_URL", "https://api.lilypad.ai/v1")
+    LILYPAD_API_URL: str = os.getenv("LILYPAD_API_URL", "https://anura-testnet.lilypad.tech/api/v1/chat/completions")
     DEFAULT_LILYPAD_API_TOKEN: str = "sk-lilypad-api-00000000000000000000000000000000"
     LILYPAD_API_TOKEN: str = os.getenv("LILYPAD_API_TOKEN", DEFAULT_LILYPAD_API_TOKEN)
     DEFAULT_MODEL: str = "gpt-4o-mini"
-    DEFAULT_MAX_TOKENS: int = 1000
+    DEFAULT_MAX_TOKENS: int = 1024
     DEFAULT_TEMPERATURE: float = 0.7
     DEFAULT_EMBEDDING_MODEL: str = "sentence-transformers/all-MiniLM-L6-v2"
     
     # Vector Store settings
-    VECTOR_STORE_DIR: str = os.getenv("VECTOR_STORE_DIR", os.path.join(os.getcwd(), "backend", "chroma_db"))
-
-    # OpenAI API Key
-    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "default_openai_api_key")
+    VECTOR_STORE_DIR: str = os.getenv("VECTOR_STORE_DIR", os.path.join(os.getcwd(), "chroma_db"))
+    
+    # Add this line for JWT token generation
+    ALGORITHM: str = "HS256"  # Standard algorithm for JWT tokens
     
     class Config:
         env_file = ".env"

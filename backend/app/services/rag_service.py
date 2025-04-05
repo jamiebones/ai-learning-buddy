@@ -5,13 +5,15 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema import Document
 from app.core.config import settings
 import datetime
+from sqlalchemy.orm import Session
+from app.models.note import Note
+from app.services.document_processing_service import DocumentProcessingService
+from app.services.embeddings import get_embeddings
+from app.services.vector_store import VectorStore
+from app.services.api_client import LilypadClient
 
 # Import these modules at file level instead of in __init__
-from app.services.vector_store import VectorStore
 from app.services.keyword_retriever import KeywordRetriever
-from app.services.api_client import LilypadClient
-from app.services.document_processing import DocumentProcessor
-
 
 # Initialize logging
 logger = logging.getLogger(__name__)
@@ -24,263 +26,148 @@ text_splitter = RecursiveCharacterTextSplitter(
 )
 
 class RAGService:
-    """RAG service implementation using Lilypad API"""
-
-    def __init__(self, api_token=None, use_embeddings=True):
-        """Initialize the RAG service with retrieval components.
+    """Service for handling RAG operations using database storage and vector search."""
+    
+    def __init__(self, db: Session):
+        """Initialize the RAG service with database session.
         
         Args:
-            api_token: Lilypad API token (uses default from config if not provided)
-            use_embeddings: Whether to use vector embeddings (True) or keyword search (False)
+            db: SQLAlchemy database session
         """
-        self.use_embeddings = use_embeddings
-
-        if use_embeddings:
-            self.retriever = VectorStore()
-        else:
-            self.retriever = KeywordRetriever()
-
-        # Use provided API token or default from config
-        self.lilypad_client = LilypadClient(api_token or settings.LILYPAD_API_TOKEN or settings.DEFAULT_LILYPAD_API_TOKEN)
-        self.initialized = False
-        self._documents = []
-        
-    def add_documents(self, documents: List[Document]) -> bool:
-        """Add documents to the retriever.
-        
-        Args:
-            documents: List of Document objects to add
+        if db is None:
+            raise ValueError("Database session cannot be None")
             
-        Returns:
-            bool: Whether the operation was successful
-        """
+        self.db = db
+        self.document_processor = DocumentProcessingService(db)
+        self.vector_store = VectorStore()
+        self.lilypad_client = LilypadClient()
+    
+    async def process_note(self, note: Note) -> None:
+        """Process a note and add it to the retrieval system."""
         try:
-            self._documents.extend(documents)
+            # Process document into chunks and store in database
+            chunks = await self.document_processor.process_document(note)
             
-            if not self.initialized:
-                logger.info("Initializing retriever with new documents...")
-                success = self.retriever.initialize(documents)
-                if success:
-                    self.initialized = True
-                return success
-            else:
-                logger.info("Adding documents to existing retriever...")
-                return self.retriever.add_documents(documents)
-                
-        except Exception as e:
-            logger.exception(f"Error adding documents: {e}")
-            return False
+            # Add chunks to vector store with embeddings
+            await self.vector_store.add_documents(chunks)
             
-    def retrieve_context(self, query: str) -> str:
-        """Retrieve relevant context for the query"""
-        try:
-            logger.info(f"Retrieving context for query: '{query}'")
-            
-            if not self.initialized:
-                logger.warning("Service not initialized yet, cannot retrieve context")
-                return ""
-            
-            if self.use_embeddings:
-                context = self.retriever.hybrid_search(query)
-            else:
-                context = self.retriever.retrieve(query)
-
-            if not context or len(context) < 100:
-                logger.warning("Retrieval returned insufficient content, using broader context")
-                # Try to get more content or use a different retrieval method as fallback
-                context = self.retriever.get_most_relevant_content()
-
-            logger.info(f"Retrieved context length: {len(context)}")
-            return context
+            logger.info(f"Successfully processed note {note.id}")
 
         except Exception as e:
-            logger.exception(f"Error retrieving context: {str(e)}")
-            return ""
-
-    def query(self, query: str) -> Dict[str, Any]:
-        """Process user query and return answer with context
-        
-        Args:
-            query: User query string
-            
-        Returns:
-            Dict with 'answer' and 'source_documents' keys
-        """
-        logger.info(f"Processing query: {query}")
-
-        context = self.retrieve_context(query)
-
-        if not context:
-            logger.error("Retrieval failed. No context was returned.")
-            return {
-                "answer": "Retrieval failed. No context available.",
-                "source_documents": []
-            }
-        
+            logger.error(f"Error processing note {note.id}: {str(e)}")
+            raise
+    
+    async def get_relevant_chunks(self, query: str, user_id: uuid.UUID, limit: int = 5) -> List[Dict[str, Any]]:
+        """Get relevant chunks for a query using semantic search."""
         try:
-            answer = self.lilypad_client.query(query, context)
+            # Get query embedding
+            query_embedding = get_embeddings(query)
+            
+            # Search vector store for similar chunks
+            # The similarity_search method now returns all needed chunk data
+            similar_chunks = await self.vector_store.similarity_search(
+                query_embedding,
+                k=limit,
+                user_id=user_id
+            )
+            
+            return similar_chunks
+            
         except Exception as e:
-            logger.error(f"API call failed: {e}")
-            return {
-                "answer": f"API call failed: {e}",
-                "source_documents": []
-            }
+            logger.error(f"Error getting relevant chunks: {str(e)}")
+            raise
+    
+    async def query_documents(self, query: str, user_id: uuid.UUID, limit: int = 5) -> Dict[str, Any]:
+        """Query documents and get response from Lilypad."""
+        try:
+            # Get relevant chunks
+            chunks = await self.get_relevant_chunks(query, user_id, limit)
+            
+            if not chunks:
+                logger.warning(f"No relevant chunks found for query: {query}")
+                return {
+                    "answer": "I couldn't find any relevant information in your notes to answer this question.",
+                    "source_documents": []
+                }
+            
+            # Format context from chunks
+            context_parts = []
+            for i, chunk in enumerate(chunks, 1):
+                context_parts.append(f"[CHUNK {i}]\n{chunk['content']}")
+            context = "\n\n".join(context_parts)
+            
+            # Get chat completion from Lilypad
+            system_prompt = """You are a helpful AI assistant that answers questions based on the user's notes. 
+Use ONLY the provided context to answer questions. If you cannot find relevant information in the context, say so.
 
-        if not answer:
-            logger.error("Lilypad API returned an empty response.")
-            return {
-                "answer": "Lilypad API returned an empty response.",
-                "source_documents": []
-            }
-
-        # Try to determine which source documents were used in the answer
-        source_docs = self.retriever.get_documents_for_context(context)
-        
-        return {
-            "answer": answer,
-            "source_documents": [
-                {
-                    "content": doc.page_content,
-                    "note_id": doc.metadata.get("note_id")
-                } for doc in source_docs
+IMPORTANT INSTRUCTIONS:
+1. NEVER mention 'chunks', 'CHUNK X', or any metadata related to document retrieval in your answer
+2. DO NOT show your thinking or reasoning process
+3. DO NOT use phrases like "Based on the context" or "According to the chunks"
+4. DO NOT output any text that starts with <think> or similar tags
+5. Provide a direct, clear answer without referencing how you arrived at it
+6. DO NOT include any preamble like "I'll analyze this..." or "Let me check..."
+7. If you're unsure, simply state that the information isn't available in the provided context"""
+            
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {query}"}
             ]
-        }
-
-    def process_note(self, note_id: uuid.UUID, user_id: uuid.UUID, content: str, title: str = "") -> bool:
-        """Process a note and add to the retrieval system with proper metadata.
-        
-        Args:
-            note_id: UUID of the note
-            user_id: UUID of the user who owns the note
-            content: Text content of the note
-            title: Optional title of the note
             
-        Returns:
-            bool: Whether the operation was successful
-        """
-        try:
-            logger.info(f"Processing note {note_id} for user {user_id}")
+            answer = await self.lilypad_client.get_chat_completion(messages)
             
-            # Create a temporary file to process with DocumentProcessor
-            import tempfile
-            with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.txt') as temp_file:
-                temp_file.write(content)
-                temp_path = temp_file.name
+            # Format source documents to include metadata properly
+            formatted_chunks = []
+            for chunk in chunks:
+                # Convert chunk_metadata to metadata for API response validation
+                chunk_metadata = chunk.get('chunk_metadata', {})
+                formatted_chunk = {
+                    "content": chunk['content'],
+                    "metadata": chunk_metadata if chunk_metadata else {"source": "database"}
+                }
+                formatted_chunks.append(formatted_chunk)
             
-            # Process the document with DocumentProcessor
-            processor = DocumentProcessor(temp_path)
-            documents = processor.process()
-            
-            # Clean up the temporary file
-            import os
-            os.unlink(temp_path)
-            
-            # Add user_id and title to metadata
-            for doc in documents:
-                doc.metadata.update({
-                    "note_id": str(note_id),
-                    "user_id": str(user_id),
-                    "title": title,
-                    "timestamp": str(datetime.datetime.now())
-                })
-            
-            # Add the processed documents to the retriever
-            return self.add_documents(documents)
+            return {
+                "answer": answer,
+                "source_documents": formatted_chunks
+            }
             
         except Exception as e:
-            logger.exception(f"Error processing note: {e}")
-            return False
+            logger.error(f"Error querying documents: {str(e)}")
+            raise
     
-    def query_for_user(self, user_id: uuid.UUID, query: str) -> Dict[str, Any]:
-        """Process user query and return answer, filtering by user_id
-        
-        Args:
-            user_id: User UUID to filter documents by
-            query: User query string
-            
-        Returns:
-            Dict with 'answer' and 'source_documents' keys
-        """
-        logger.info(f"Processing query for user {user_id}: {query}")
-        
-        # Set the user_id filter for retrieval
-        if self.use_embeddings:
-            context = self.retriever.hybrid_search(query, filter={"user_id": str(user_id)})
-        else:
-            # If keyword retriever doesn't support filtering, we'll filter afterward
-            context = self.retriever.retrieve(query)
-            # Placeholder for filtering by user_id if needed
-        
-        if not context:
-            logger.error("Retrieval failed. No context was returned.")
-            return {
-                "answer": "I couldn't find any relevant information in your notes.",
-                "source_documents": []
-            }
-        
+    async def delete_note(self, note_id: uuid.UUID) -> None:
+        """Delete a note and its associated chunks from the retrieval system."""
         try:
-            answer = self.lilypad_client.query(query, context)
+            # Delete chunks from database
+            await self.document_processor.delete_document_chunks(note_id)
+            
+            # Remove from vector store
+            await self.vector_store.delete_documents(note_id)
+            
+            logger.info(f"Successfully deleted note {note_id}")
+            
         except Exception as e:
-            logger.error(f"API call failed: {e}")
-            return {
-                "answer": f"Sorry, I encountered an error while processing your query.",
-                "source_documents": []
-            }
+            logger.error(f"Error deleting note {note_id}: {str(e)}")
+            raise
 
-        if not answer:
-            logger.error("Lilypad API returned an empty response.")
-            return {
-                "answer": "I couldn't generate an answer based on your notes.",
-                "source_documents": []
-            }
-
-        # Get source documents with enhanced metadata
-        source_docs = self.retriever.get_documents_for_context(context)
+async def process_user_note(user_id: uuid.UUID, note_id: uuid.UUID, content: str, db: Session = None) -> bool:
+    """Process a user's note and add to the retrieval system."""
+    if not db:
+        raise ValueError("Database session is required")
         
-        # Format source documents with more metadata
-        formatted_sources = []
-        for doc in source_docs:
-            formatted_sources.append({
-                "content": doc.page_content,
-                "note_id": doc.metadata.get("note_id"),
-                "title": doc.metadata.get("title", "Untitled Note"),
-                "chunk_type": doc.metadata.get("chunk_type", "unknown"),
-                "source": doc.metadata.get("source", "")
-            })
-        
-        return {
-            "answer": answer,
-            "source_documents": formatted_sources
-        }
+    rag_service = RAGService(db)
+    note = Note(id=note_id, user_id=user_id, note_text=content)
+    await rag_service.process_note(note)
+    return True
 
-# Service instance
-rag_service = RAGService(use_embeddings=True)
-
-def process_user_note(user_id: uuid.UUID, note_id: uuid.UUID, content: str, title: str = "") -> bool:
-    """Process a user's note and add to the retrieval system.
-    
-    Args:
-        user_id: User's UUID
-        note_id: Note's UUID
-        content: Note content
-        title: Note title
+async def query_notes(user_id: uuid.UUID, query: str, db: Session = None) -> Dict[str, Any]:
+    """Query the user's notes to find relevant information and generate an answer."""
+    if not db:
+        raise ValueError("Database session is required")
         
-    Returns:
-        bool: Success status
-    """
-    return rag_service.process_note(note_id, user_id, content, title)
-
-def query_notes(user_id: uuid.UUID, query: str) -> Dict[str, Any]:
-    """Query the user's notes to find relevant information and generate an answer.
-    
-    Args:
-        user_id: User's UUID
-        query: User's question
-        
-    Returns:
-        Dict with answer and source documents
-    """
-    return rag_service.query_for_user(user_id, query)
+    rag_service = RAGService(db)
+    return await rag_service.query_documents(query, user_id)
 
 
 

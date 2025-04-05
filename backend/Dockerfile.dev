@@ -16,17 +16,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 
 # Create a lightweight version of requirements.txt excluding PyTorch-related packages
-RUN grep -v "torch\|sentence-transformers" requirements.txt > requirements-light.txt || true
+RUN grep -v "torch\|sentence-transformers\|transformers\|langchain-huggingface" requirements.txt > requirements-light.txt || true
 
-# Install the remaining requirements
+# Install the base requirements
 RUN pip install --upgrade pip && \
     pip install -v --timeout 300 --retries 5 -r requirements-light.txt && \
-    pip install sentence-transformers --no-deps && \
-    pip install -v debugpy pytest pytest-cov black isort mypy && \
-    pip install email-validator python-multipart
+    pip install -v debugpy pytest pytest-cov black isort mypy email-validator python-multipart
 
-# Don't copy code - we'll mount it as a volume
-# This enables hot-reloading
+# Update PyTorch to a compatible version
+RUN pip install --upgrade torch torchvision torchaudio
+
+# Install the remaining requirements
+RUN pip install --upgrade numpy transformers sentence-transformers langchain-community langchain-huggingface
 
 EXPOSE 8000
 EXPOSE 5678

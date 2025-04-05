@@ -17,7 +17,6 @@ from app.core.logging import setup_logging
 from app.middleware.rate_limiter import RateLimitMiddleware
 from app.middleware.security_headers import SecurityHeadersMiddleware
 
-
 # Setup logging
 logger = logging.getLogger(__name__)
 setup_logging()
@@ -46,7 +45,7 @@ async def lifespan(app: FastAPI):
         await close_db_connections()
         logger.info("Database connections closed successfully")
     except Exception as e:
-        logger.exception("Error closing database connections: %s", str(e))
+        logger.exception("Error during shutdown: %s", str(e))
 
 
 def create_application() -> FastAPI:

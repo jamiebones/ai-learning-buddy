@@ -29,8 +29,11 @@ python-docx>=0.8.11
 
 # Vector stores and embeddings
 faiss-cpu>=1.7.4
-sentence-transformers>=2.2.2
+sentence-transformers==2.2.2
 chromadb>=0.4.6
+torch==2.0.1
+transformers==4.30.2
+numpy==1.24.3
 
 # Utilities
 python-dotenv>=1.0.0

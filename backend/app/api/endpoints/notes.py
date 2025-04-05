@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from app.core.db import get_db
 from app.models.user import User
-from app.models.notes import Note
+from app.models.note import Note
 from app.services.auth import get_current_user
 from app.services.file_processor import process_file
 from app.services.rag_service import process_user_note
@@ -39,16 +39,16 @@ async def upload_note(
         
         # Save to database
         note = Note(
+            id=uuid.uuid4(),
             user_id=current_user.id,
             note_text=note_text,
             file_name=file.filename
         )
         db.add(note)
-        db.commit()
-        db.refresh(note)
+        await db.commit()
         
-        # Add to vector store for RAG
-        process_user_note(current_user.id,note.id, note_text,file.filename)
+        # Process the note
+        await process_user_note(current_user.id, note.id, note_text, db)
         
         return note
     

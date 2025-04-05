@@ -12,7 +12,8 @@ class Chat(Base):
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     message = Column(Text, nullable=False)
     response = Column(Text, nullable=False)
-    timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    timestamp = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     
     # Relationships
-    user = relationship("User", back_populates="chats") 
+    user = relationship("User", back_populates="chats", lazy="joined")
+

@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
+from uuid import UUID
 
 
 class NoteBase(BaseModel):
@@ -14,12 +15,13 @@ class NoteCreate(NoteBase):
     pass
 
 
-class NoteResponse(NoteBase):
+class NoteResponse(BaseModel):
     """Schema for note responses"""
-    id: int
-    user_id: int
-    created_at: datetime
-    updated_at: Optional[datetime] = None
+    id: UUID
+    user_id: UUID
+    note_text: str
+    file_name: str
+    upload_date: datetime
 
     class Config:
         """Configure Pydantic to work with ORM"""
