@@ -1,0 +1,8 @@
+[33mcommit f500b76c65e9cc443220ffc5ceceb6ddc534302c[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m
+Author: jamiebones <jamiebones2000@yahoo.co.uk>
+Date:   Mon Apr 7 20:56:53 2025 +0100
+
+    Add frontend structure with Next.js App Router
+
+ docker-compose.yml | 2 [32m+[m[31m-[m
+ 1 file changed, 1 insertion(+), 1 deletion(-)

@@ -1,7 +1,6 @@
 services:
   postgres:
-    build:
-      image: postgres:14
+    image: postgres:15
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
