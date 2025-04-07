@@ -1,0 +1,21 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Install dependencies
+COPY package.json package-lock.json* ./
+RUN npm ci
+
+# Next.js specific env vars
+ENV PORT=3000
+ENV NODE_ENV=development
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Don't copy code - we'll mount it as a volume
+# This enables hot-reloading with Next.js
+#
+
+EXPOSE 3000
+
+# Command for Next.js dev server
+CMD ["npm", "run", "dev", "--", "--port", "3000", "--hostname", "0.0.0.0"] 
