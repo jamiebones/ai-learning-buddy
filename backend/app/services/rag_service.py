@@ -1,19 +1,14 @@
 import uuid
 import logging
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.schema import Document
 from app.core.config import settings
-import datetime
 from sqlalchemy.orm import Session
 from app.models.note import Note
 from app.services.document_processing_service import DocumentProcessingService
 from app.services.embeddings import get_embeddings
 from app.services.vector_store import VectorStore
 from app.services.api_client import LilypadClient
-
-# Import these modules at file level instead of in __init__
-from app.services.keyword_retriever import KeywordRetriever
 
 # Initialize logging
 logger = logging.getLogger(__name__)
@@ -29,11 +24,7 @@ class RAGService:
     """Service for handling RAG operations using database storage and vector search."""
     
     def __init__(self, db: Session):
-        """Initialize the RAG service with database session.
-        
-        Args:
-            db: SQLAlchemy database session
-        """
+        """Initialize the RAG service with database session."""
         if db is None:
             raise ValueError("Database session cannot be None")
             

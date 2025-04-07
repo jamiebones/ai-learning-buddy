@@ -17,8 +17,8 @@ pydantic>=2.4.2
 pydantic-settings>=2.0.3
 
 # LangChain ecosystem
-langchain>=0.0.267
-langchain-community>=0.0.10
+langchain>=0.0.340  # Kept the higher version
+langchain-community>=0.0.20  # Kept the higher version
 langchain-huggingface>=0.0.8
 langchain-openai>=0.0.2
 huggingface-hub>=0.16.4
@@ -29,11 +29,14 @@ python-docx>=0.8.11
 
 # Vector stores and embeddings
 faiss-cpu>=1.7.4
-sentence-transformers==2.2.2
-chromadb>=0.4.6
-torch==2.0.1
-transformers==4.30.2
-numpy==1.24.3
+sentence-transformers>=2.2.2  # Changed to compatible range
+chromadb>=0.4.15  # Kept the higher version
+transformers==4.40.0  # Pinned specific version
+accelerate>=0.25.0 # Added accelerate dependency
+numpy>=1.24.3,<2.0  # Constrained below 2.0 for compatibility
+torch>=2.0.0  # Added explicit torch requirement for transformers
+torchvision>=0.15.2 # Corresponds to torch 2.0.x
+torchaudio>=2.0.2  # Corresponds to torch 2.0.x
 
 # Utilities
 python-dotenv>=1.0.0

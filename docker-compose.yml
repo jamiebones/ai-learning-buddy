@@ -2,7 +2,6 @@ services:
   postgres:
     build:
       context: ./backend
-      dockerfile: Dockerfile.postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}

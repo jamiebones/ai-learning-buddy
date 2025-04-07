@@ -1,9 +1,9 @@
-# Use a PyTorch pre-built image that already includes PyTorch and related dependencies
-FROM pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime
+# Use a specific Python version for better cache consistency
+FROM python:3.10-slim
 
 WORKDIR /backend
 
-# Install only the additional system dependencies needed
+# Install system dependencies in a single RUN to minimize layers
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     python3-dev \
@@ -12,28 +12,27 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy and install requirements, except PyTorch which is already included
+# Copy requirements first (this allows better cache utilization)
 COPY requirements.txt .
 
-# Create a lightweight version of requirements.txt excluding PyTorch-related packages
-RUN grep -v "torch\|sentence-transformers\|transformers\|langchain-huggingface" requirements.txt > requirements-light.txt || true
+# Install core requirements using pip cache mount
+# Requires Docker BuildKit (DOCKER_BUILDKIT=1)
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --upgrade pip && \
+    pip install -v --timeout 300 --retries 5 -r requirements.txt
 
-# Install the base requirements
-RUN pip install --upgrade pip && \
-    pip install -v --timeout 300 --retries 5 -r requirements-light.txt && \
-    pip install -v debugpy pytest pytest-cov black isort mypy email-validator python-multipart
-
-# Update PyTorch to a compatible version
-RUN pip install --upgrade torch torchvision torchaudio
-
-# Install the remaining requirements
-RUN pip install --upgrade numpy transformers sentence-transformers langchain-community langchain-huggingface
+# Install dev dependencies separately using pip cache mount
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install debugpy pytest pytest-cov black isort mypy
 
 EXPOSE 8000
 EXPOSE 5678
 
-# Set PYTHONPATH to include the backend directory itself
+# Set PYTHONPATH
 ENV PYTHONPATH=/backend
 
+# Copy application code last (changes most frequently)
+COPY . .
+
 # Use python -m to run the module properly
-CMD ["python", "-m", "app.main"] 
+CMD ["python", "-m", "app.main"]

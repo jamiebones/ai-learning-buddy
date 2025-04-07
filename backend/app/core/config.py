@@ -1,9 +1,7 @@
 from pydantic_settings import BaseSettings
 import os
 import secrets
-from typing import List, Union, Optional
-
-print(os.getcwd())
+from typing import List, Union
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "AI Learning Buddy Backend Application"
