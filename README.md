@@ -61,8 +61,8 @@ AI Learning Buddy combines a modern NextJS frontend with a powerful Python backe
    ```
    # Database
    POSTGRES_USER=postgres
-   POSTGRES_PASSWORD=your_password
-   POSTGRES_DB=learning_buddy
+   POSTGRES_PASSWORD=postgres
+   POSTGRES_DB=studybuddy
    
    # Backend
    ACCESS_TOKEN_EXPIRE_MINUTES=60
@@ -70,7 +70,7 @@ AI Learning Buddy combines a modern NextJS frontend with a powerful Python backe
    REFRESH_TOKEN_SECRET
    
    # AI Services 
-   LILYPAD_API_TOKEN
+   LILYPAD_API_TOKEN=<obtain a key from anura.lilypad.tech>
 
    
    # Frontend
